@@ -52,11 +52,42 @@ export function PatternCanvas() {
     <svg
       ref={svgRef}
       viewBox={`${-CANVAS_MARGIN} ${-CANVAS_MARGIN} ${viewWidth} ${viewHeight}`}
-      className="aspect-square h-[90vh] max-h-[90vw] w-[90vh] max-w-[90vw] touch-none select-none"
+      className="touch-none select-none"
+      style={{
+        // Fit within 90vh tall and the available width, preserving the grid's
+        // aspect ratio — element box always equals the drawn box, so pointer
+        // hit-testing (which assumes a 1:1 viewBox↔rect map) stays exact.
+        aspectRatio: `${viewWidth} / ${viewHeight}`,
+        width: `min(90vh * ${viewWidth / viewHeight}, 100%)`,
+      }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
+      <g stroke="#282828" style={{ mixBlendMode: 'difference' }}>
+        {Array.from({ length: cols + 1 }, (_, c) => (
+          <line
+            key={`v${c}`}
+            x1={c * PITCH}
+            y1={0}
+            x2={c * PITCH}
+            y2={rows * PITCH}
+            strokeWidth={1}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        {Array.from({ length: rows + 1 }, (_, r) => (
+          <line
+            key={`h${r}`}
+            x1={0}
+            y1={r * PITCH}
+            x2={cols * PITCH}
+            y2={r * PITCH}
+            strokeWidth={1}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </g>
       <path d={pathD} fill={color} fillRule="evenodd" />
     </svg>
   );

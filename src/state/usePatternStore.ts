@@ -3,12 +3,14 @@ import {
   BRAND_COLOR,
   DEFAULT_GRID_SIZE,
   DEFAULT_NOTCH_PCT,
-  type GridSize,
+  MAX_GRID_DIM,
+  MIN_GRID_DIM,
 } from '../utils/constants';
 
 export interface PatternParams {
   seed: number;
-  gridSize: GridSize;
+  rows: number;
+  cols: number;
   density: number;
   clumpiness: number;
   smoothing: number;
@@ -25,7 +27,8 @@ interface PatternStore {
   /** true until the user touches a generation control; shows the "20" splash. */
   showDefaultPattern: boolean;
   setParam: <K extends keyof PatternParams>(key: K, value: PatternParams[K]) => void;
-  setGridSize: (size: GridSize) => void;
+  /** Set grid dimensions (clamped to [MIN_GRID_DIM, MAX_GRID_DIM]); resets edits. */
+  setDimensions: (rows: number, cols: number) => void;
   randomizeSeed: () => void;
   toggleCell: (r: number, c: number, forceValue?: boolean) => void;
   clearOverrides: () => void;
@@ -34,7 +37,8 @@ interface PatternStore {
 
 const DEFAULT_PARAMS: PatternParams = {
   seed: 20260706,
-  gridSize: DEFAULT_GRID_SIZE,
+  rows: DEFAULT_GRID_SIZE,
+  cols: DEFAULT_GRID_SIZE,
   density: 0.42,
   clumpiness: 0.55,
   smoothing: 2,
@@ -53,12 +57,15 @@ export const usePatternStore = create<PatternStore>((set) => ({
   setParam: (key, value) =>
     set((state) => ({ params: { ...state.params, [key]: value }, showDefaultPattern: false })),
 
-  setGridSize: (size) =>
+  setDimensions: (rows, cols) => {
+    const clamp = (n: number) =>
+      Math.min(MAX_GRID_DIM, Math.max(MIN_GRID_DIM, Math.round(Number.isFinite(n) ? n : MIN_GRID_DIM)));
     set((state) => ({
-      params: { ...state.params, gridSize: size },
+      params: { ...state.params, rows: clamp(rows), cols: clamp(cols) },
       overrides: new Map(),
       showDefaultPattern: false,
-    })),
+    }));
+  },
 
   randomizeSeed: () =>
     set((state) => ({
@@ -82,10 +89,10 @@ export const usePatternStore = create<PatternStore>((set) => ({
   clearAll: () =>
     set((state) => {
       const next = new Map<string, boolean>();
-      const size = state.params.gridSize;
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) next.set(`${r},${c}`, false);
+      const { rows, cols } = state.params;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) next.set(`${r},${c}`, false);
       }
-      return { overrides: next };
+      return { overrides: next, showDefaultPattern: false };
     }),
 }));

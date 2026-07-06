@@ -14,12 +14,15 @@ export function usePatternGeometry() {
   const overrides = usePatternStore((s) => s.overrides);
   const showDefaultPattern = usePatternStore((s) => s.showDefaultPattern);
 
-  const rows = params.gridSize;
-  const cols = params.gridSize;
+  const rows = params.rows;
+  const cols = params.cols;
 
   // On first load show the hand-authored "20" splash; any generation-control
   // interaction flips showDefaultPattern off and hands over to generateGrid.
-  const useDefault = showDefaultPattern && params.gridSize === DEFAULT_PATTERN_GRID_SIZE;
+  const useDefault =
+    showDefaultPattern &&
+    rows === DEFAULT_PATTERN_GRID_SIZE &&
+    cols === DEFAULT_PATTERN_GRID_SIZE;
 
   const baseGrid = useMemo(
     () =>

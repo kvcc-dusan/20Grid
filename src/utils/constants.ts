@@ -2,6 +2,10 @@ export const GRID_SIZE_PRESETS = [8, 16, 32] as const;
 export type GridSize = (typeof GRID_SIZE_PRESETS)[number];
 export const DEFAULT_GRID_SIZE: GridSize = 16;
 
+/** Custom grid dimensions clamp here — small enough to paint, big enough to matter. */
+export const MIN_GRID_DIM = 2;
+export const MAX_GRID_DIM = 64;
+
 /** World units per grid cell. Arbitrary — only ratios to this matter. */
 export const PITCH = 100;
 

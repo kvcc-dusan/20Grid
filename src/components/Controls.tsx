@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { usePatternStore } from '../state/usePatternStore';
-import { GRID_SIZE_PRESETS, MAX_NOTCH_PCT, type GridSize } from '../utils/constants';
+import { GRID_SIZE_PRESETS, MAX_NOTCH_PCT } from '../utils/constants';
 import { ExportButton } from './ExportButton';
 
 interface SliderRowProps {
@@ -15,7 +16,7 @@ interface SliderRowProps {
 function SliderRow({ label, value, min, max, step, onChange, displayValue }: SliderRowProps) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
-    <label className="flex flex-col gap-2">
+    <label className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-[13px] font-medium text-neutral-400">
         <span>{label}</span>
         <span className="tabular-nums text-neutral-200">{displayValue ?? value}</span>
@@ -36,7 +37,7 @@ function SliderRow({ label, value, min, max, step, onChange, displayValue }: Sli
 
 function SectionLabel({ children }: { children: string }) {
   return (
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-600">
+    <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
       {children}
     </div>
   );
@@ -64,32 +65,72 @@ function ToggleRow({
   );
 }
 
+interface DimInputProps {
+  label: string;
+  value: number;
+  onCommit: (value: number) => void;
+}
+
+/** Number field for a grid dimension. Edits a local buffer, commits on blur/Enter
+ * so clamping doesn't fight the user mid-type. */
+function DimInput({ label, value, onCommit }: DimInputProps) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+
+  const commit = () => {
+    const parsed = Number.parseInt(text, 10);
+    if (Number.isFinite(parsed)) onCommit(parsed);
+    else setText(String(value));
+  };
+
+  return (
+    <label className="flex flex-1 items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2 transition-colors focus-within:bg-white/[0.07]">
+      <span className="text-[13px] font-medium text-neutral-500">{label}</span>
+      <input
+        type="number"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+        }}
+        className="w-full min-w-0 bg-transparent text-sm text-neutral-100 outline-none"
+      />
+    </label>
+  );
+}
+
 export function Controls() {
   const params = usePatternStore((s) => s.params);
   const setParam = usePatternStore((s) => s.setParam);
-  const setGridSize = usePatternStore((s) => s.setGridSize);
+  const setDimensions = usePatternStore((s) => s.setDimensions);
   const randomizeSeed = usePatternStore((s) => s.randomizeSeed);
   const clearOverrides = usePatternStore((s) => s.clearOverrides);
   const clearAll = usePatternStore((s) => s.clearAll);
 
   return (
-    <div className="flex w-[300px] flex-col gap-6 rounded-2xl border border-white/[0.06] bg-neutral-900 p-5 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_20px_50px_-20px_rgba(0,0,0,0.6)]">
+    <div className="panel-in flex w-[300px] flex-col gap-6 rounded-[28px] bg-neutral-900/95 p-6 shadow-[0_24px_70px_-24px_rgba(0,0,0,0.75)] backdrop-blur-xl">
       <div className="flex flex-col gap-2">
         <SectionLabel>Grid</SectionLabel>
-        <div className="flex gap-1 rounded-lg bg-black/30 p-1">
-          {GRID_SIZE_PRESETS.map((size) => (
-            <button
-              key={size}
-              onClick={() => setGridSize(size as GridSize)}
-              className={`flex-1 rounded-md py-1.5 text-[13px] font-medium transition-colors ${
-                params.gridSize === size
-                  ? 'bg-brand text-neutral-950'
-                  : 'text-neutral-400 hover:text-neutral-200'
-              }`}
-            >
-              {size}×{size}
-            </button>
-          ))}
+        <div className="flex gap-1 rounded-xl bg-white/[0.03] p-1">
+          {GRID_SIZE_PRESETS.map((size) => {
+            const active = params.rows === size && params.cols === size;
+            return (
+              <button
+                key={size}
+                onClick={() => setDimensions(size, size)}
+                className={`flex-1 rounded-md py-1.5 text-[13px] font-medium transition-colors ${
+                  active ? 'bg-brand text-neutral-950' : 'text-neutral-400 hover:text-neutral-200'
+                }`}
+              >
+                {size}×{size}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2">
+          <DimInput label="W" value={params.cols} onCommit={(v) => setDimensions(params.rows, v)} />
+          <DimInput label="H" value={params.rows} onCommit={(v) => setDimensions(v, params.cols)} />
         </div>
       </div>
 
@@ -100,7 +141,7 @@ export function Controls() {
             type="number"
             value={params.seed}
             onChange={(e) => setParam('seed', Number(e.target.value))}
-            className="w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-brand/60"
+            className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-neutral-100 outline-none transition-colors focus:bg-white/[0.07]"
           />
           <button
             onClick={randomizeSeed}
@@ -123,7 +164,7 @@ export function Controls() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <SectionLabel>Shape</SectionLabel>
         <SliderRow
           label="Density"
@@ -168,7 +209,7 @@ export function Controls() {
             type="color"
             value={params.color}
             onChange={(e) => setParam('color', e.target.value)}
-            className="color-swatch h-9 w-9 cursor-pointer rounded-lg border border-white/[0.08]"
+            className="color-swatch h-9 w-9 cursor-pointer rounded-lg"
           />
           <span className="text-[13px] text-neutral-400">Fill color</span>
         </div>
@@ -177,7 +218,7 @@ export function Controls() {
             type="color"
             value={params.bgColor}
             onChange={(e) => setParam('bgColor', e.target.value)}
-            className="color-swatch h-9 w-9 cursor-pointer rounded-lg border border-white/[0.08]"
+            className="color-swatch h-9 w-9 cursor-pointer rounded-lg"
           />
           <span className="text-[13px] text-neutral-400">Background color</span>
         </div>
@@ -192,13 +233,13 @@ export function Controls() {
       <div className="flex gap-2">
         <button
           onClick={clearOverrides}
-          className="flex-1 rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-[13px] font-medium text-neutral-300 hover:border-white/20"
+          className="flex-1 rounded-lg bg-white/[0.04] px-3 py-2 text-[13px] font-medium text-neutral-300 transition-colors hover:bg-white/[0.08]"
         >
           Clear edits
         </button>
         <button
           onClick={clearAll}
-          className="flex-1 rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-[13px] font-medium text-neutral-300 hover:border-white/20"
+          className="flex-1 rounded-lg bg-white/[0.04] px-3 py-2 text-[13px] font-medium text-neutral-300 transition-colors hover:bg-white/[0.08]"
         >
           Clear all
         </button>
