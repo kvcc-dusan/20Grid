@@ -22,6 +22,8 @@ export interface PatternParams {
 interface PatternStore {
   params: PatternParams;
   overrides: Map<string, boolean>;
+  /** true until the user touches a generation control; shows the "20" splash. */
+  showDefaultPattern: boolean;
   setParam: <K extends keyof PatternParams>(key: K, value: PatternParams[K]) => void;
   setGridSize: (size: GridSize) => void;
   randomizeSeed: () => void;
@@ -46,17 +48,23 @@ const DEFAULT_PARAMS: PatternParams = {
 export const usePatternStore = create<PatternStore>((set) => ({
   params: DEFAULT_PARAMS,
   overrides: new Map(),
+  showDefaultPattern: true,
 
   setParam: (key, value) =>
-    set((state) => ({ params: { ...state.params, [key]: value } })),
+    set((state) => ({ params: { ...state.params, [key]: value }, showDefaultPattern: false })),
 
   setGridSize: (size) =>
-    set((state) => ({ params: { ...state.params, gridSize: size }, overrides: new Map() })),
+    set((state) => ({
+      params: { ...state.params, gridSize: size },
+      overrides: new Map(),
+      showDefaultPattern: false,
+    })),
 
   randomizeSeed: () =>
     set((state) => ({
       params: { ...state.params, seed: Math.floor(Math.random() * 1e9) },
       overrides: new Map(),
+      showDefaultPattern: false,
     })),
 
   toggleCell: (r, c, forceValue) =>
